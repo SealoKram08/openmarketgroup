@@ -1,24 +1,53 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Ct.Interview.Web.Api.Data;
+using Ct.Interview.Web.Api.Services.IServices;
+using Ct.Interview.Web.Api.Services;
 
-namespace Ct.Interview.Web.Api
+var builder = WebApplication.CreateBuilder(args);
+
+var services = builder.Services;
+
+// Add services to the container.
+services.AddEndpointsApiExplorer();
+services.AddSwaggerGen();
+
+// cors
+services.AddCors(options =>
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            CreateWebHostBuilder(args).Build().Run();
-        }
+    options.AddDefaultPolicy(builder => builder
+        .SetIsOriginAllowedToAllowWildcardSubdomains()
+        .WithOrigins("http://localhost:3000")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials()
+        .Build());
+});
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>();
-    }
+// ioc
+services.AddDbContext<DataContext>(options => options.UseInMemoryDatabase(databaseName: "Test"));
+
+services.AddControllers();
+
+// enable caching
+services.AddMemoryCache();
+
+//DI services.
+services.AddScoped<ICompanyServices, CompanyServices>();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
+app.MapControllers();
+app.UseCors();
+
+app.Run();
